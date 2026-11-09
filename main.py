@@ -11,6 +11,13 @@ class Dispositivo(BaseModel):
     ip: str
     activo: bool = True
 
+# Modelo para actualizar parcialmente un dispositivo
+class DispositivoParcial(BaseModel):
+    nombre: str | None = None
+    tipo: str | None = None
+    ip: str | None = None
+    activo: bool | None = None    
+
 
 # Base de datos simulada
 inventario = [
@@ -48,6 +55,7 @@ async def obtener(nombre: str):
     return equipo
 
 
+
 # CREATE: Registrar un nuevo dispositivo
 @app.post("/dispositivos", status_code=201)
 async def crear(nuevo: Dispositivo):
@@ -64,3 +72,46 @@ async def crear(nuevo: Dispositivo):
 
     # Devolver el dispositivo registrado
     return nuevo
+
+
+# UPDATE: Reemplazar completamente un dispositivo
+@app.put("/dispositivos/{nombre}")
+async def reemplazar(nombre: str, datos: Dispositivo):
+
+    # Buscar el dispositivo que se desea reemplazar
+    equipo = buscar(nombre)
+
+    # Comprobar si existe
+    if equipo is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No existe el equipo {nombre}"
+        )
+
+    # Reemplazar todos sus datos
+    inventario[inventario.index(equipo)] = datos
+
+    # Devolver el dispositivo actualizado
+    return datos
+
+
+# UPDATE: Modificar parcialmente un dispositivo
+@app.patch("/dispositivos/{nombre}")
+async def modificar(nombre: str, cambios: DispositivoParcial):
+
+    # Buscar el dispositivo
+    equipo = buscar(nombre)
+
+    # Comprobar si existe
+    if equipo is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No existe el equipo {nombre}"
+        )
+
+    # Modificar únicamente los campos enviados
+    for campo, valor in cambios.model_dump(exclude_unset=True).items():
+        setattr(equipo, campo, valor)
+
+    # Devolver el dispositivo modificado
+    return equipo
