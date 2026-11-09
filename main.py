@@ -1,94 +1,48 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-app = FastAPI(title="Inventario")
+app = FastAPI(title="Inventario de dispositivos")
 
 
-# Modelo de datos
-class Item(BaseModel):
+# Modelo de datos de los dispositivos
+class Dispositivo(BaseModel):
     nombre: str
-    precio: float
-    cantidad: int
+    tipo: str
+    ip: str
+    activo: bool = True
 
 
 # Base de datos simulada
-items = {}
+inventario = [
+    Dispositivo(nombre="R1", tipo="Router", ip="192.168.1.1"),
+    Dispositivo(nombre="SW1", tipo="Switch", ip="192.168.1.2"),
+    Dispositivo(nombre="SRV1", tipo="Servidor", ip="192.168.1.3")
+]
 
 
-# Ruta principal
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+# Función para buscar un dispositivo por su nombre
+def buscar(nombre: str) -> Dispositivo | None:
+    for equipo in inventario:
+        if equipo.nombre.upper() == nombre.upper():
+            return equipo
+    return None
 
 
-# CREATE - Crear un item
-@app.post("/items/")
-def create_item(item_id: int, item: Item):
-    if item_id in items:
-        raise HTTPException(status_code=400, detail="El item ya existe")
-
-    items[item_id] = item
-
-    return {
-        "mensaje": "Item creado correctamente",
-        "item_id": item_id,
-        "item": item
-    }
+# READ: Obtener todos los dispositivos
+@app.get("/dispositivos")
+async def listar():
+    return inventario
 
 
-# READ - Obtener todos los items
-@app.get("/items/")
-def read_items():
-    return items
+# READ: Obtener un dispositivo por nombre
+@app.get("/dispositivos/{nombre}")
+async def obtener(nombre: str):
+    equipo = buscar(nombre)
 
+    if equipo is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No existe el equipo {nombre}"
+        )
 
-# READ - Obtener un item por ID
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    if item_id not in items:
-        raise HTTPException(status_code=404, detail="Item no encontrado")
-
-    return {
-        "item_id": item_id,
-        "item": items[item_id],
-        "q": q
-    }
-
-
-# UPDATE - Actualizar un item
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    if item_id not in items:
-        raise HTTPException(status_code=404, detail="Item no encontrado")
-
-    items[item_id] = item
-
-    return {
-        "mensaje": "Item actualizado correctamente",
-        "item_id": item_id,
-        "item": item
-    }
-
-
-# DELETE - Eliminar un item
-@app.delete("/items/{item_id}")
-def delete_item(item_id: int):
-    if item_id not in items:
-        raise HTTPException(status_code=404, detail="Item no encontrado")
-
-    del items[item_id]
-
-    return {
-        "mensaje": "Item eliminado correctamente",
-        "item_id": item_id
-    }
-
-
-
-
-
-#    .venv/
- #   __pycache__/
-  #  .env
-   # .Ds_Store
-    #venv/
+    return equipo
