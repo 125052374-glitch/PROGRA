@@ -64,3 +64,23 @@ async def obtener(nombre: str):
         status_code=404,
         detail=f"No existe el equipo {nombre}"
     )
+
+
+# CREATE: Registrar un nuevo dispositivo
+@app.post("/dispositivos", status_code=201)
+async def crear(nuevo: Dispositivo):
+    """Registra un dispositivo en el inventario."""
+
+    # Comprobar si ya existe un equipo con ese nombre
+    for equipo in inventario:
+        if equipo.nombre.upper() == nuevo.nombre.upper():
+            raise HTTPException(
+                status_code=409,
+                detail=f"Ya existe el equipo {nuevo.nombre}"
+            )
+
+    # Agregar el nuevo dispositivo
+    inventario.append(nuevo)
+
+    # Devolver los datos del dispositivo registrado
+    return nuevo
