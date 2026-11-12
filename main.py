@@ -18,6 +18,14 @@ class Dispositivo(BaseModel):
     activo: bool = True
 
 
+# Modelo para actualizar parcialmente un dispositivo
+class DispositivoParcial(BaseModel):
+    nombre: str | None = None
+    tipo: str | None = None
+    ip: str | None = None
+    activo: bool | None = None
+
+
 inventario = [
     Dispositivo(nombre="R1", tipo="router", ip="10.0.0.1"),
     Dispositivo(
@@ -60,6 +68,118 @@ async def obtener(nombre: str):
         if equipo.nombre.upper() == nombre.upper():
             return equipo
 
+    raise HTTPException(
+        status_code=404,
+        detail=f"No existe el equipo {nombre}"
+    )
+
+
+# CREATE: Registrar un nuevo dispositivo
+@app.post("/dispositivos", status_code=201)
+async def crear(nuevo: Dispositivo):
+    """Registra un dispositivo en el inventario."""
+
+    # Comprobar si ya existe un equipo con ese nombre
+    for equipo in inventario:
+        if equipo.nombre.upper() == nuevo.nombre.upper():
+            raise HTTPException(
+                status_code=409,
+                detail=f"Ya existe el equipo {nuevo.nombre}"
+            )
+
+    # Agregar el nuevo dispositivo
+    inventario.append(nuevo)
+
+    # Devolver los datos del dispositivo registrado
+    return nuevo
+
+
+
+
+# UPDATE: Reemplazar completamente un dispositivo
+@app.put("/dispositivos/{nombre}")
+async def reemplazar(nombre: str, datos: Dispositivo):
+    """Reemplaza los datos de un dispositivo existente."""
+
+    # Buscar el dispositivo por nombre
+    for indice, equipo in enumerate(inventario):
+
+        if equipo.nombre.upper() == nombre.upper():
+
+            # Evitar nombres duplicados con otros dispositivos
+            for otro in inventario:
+                if otro is not equipo and otro.nombre.upper() == datos.nombre.upper():
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Ya existe el equipo {datos.nombre}"
+                    )
+
+            # Reemplazar completamente el dispositivo
+            inventario[indice] = datos
+
+            # Devolver los datos actualizados
+            return datos
+
+    # Si el dispositivo no existe
+    raise HTTPException(
+        status_code=404,
+        detail=f"No existe el equipo {nombre}"
+    )
+
+
+
+# UPDATE: Modificar parcialmente un dispositivo
+@app.patch("/dispositivos/{nombre}")
+async def modificar(nombre: str, cambios: DispositivoParcial):
+    """Modifica únicamente los campos enviados de un dispositivo."""
+
+    # Buscar el dispositivo por nombre
+    for equipo in inventario:
+        if equipo.nombre.upper() == nombre.upper():
+
+            # Verificar si el nuevo nombre ya pertenece a otro equipo
+            if cambios.nombre is not None:
+                for otro in inventario:
+                    if otro is not equipo and otro.nombre.upper() == cambios.nombre.upper():
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"Ya existe el equipo {cambios.nombre}"
+                        )
+
+            # Actualizar únicamente los campos enviados
+            datos_actualizados = cambios.model_dump(exclude_unset=True)
+
+            for campo, valor in datos_actualizados.items():
+                setattr(equipo, campo, valor)
+
+            # Devolver el dispositivo actualizado
+            return equipo
+
+    # Si el dispositivo no existe
+    raise HTTPException(
+        status_code=404,
+        detail=f"No existe el equipo {nombre}"
+    )
+
+
+
+
+# DELETE: Eliminar un dispositivo del inventario
+@app.delete("/dispositivos/{nombre}", status_code=204)
+async def eliminar(nombre: str):
+    """Elimina un dispositivo del inventario por su nombre."""
+
+    # Buscar el dispositivo por nombre
+    for indice, equipo in enumerate(inventario):
+        if equipo.nombre.upper() == nombre.upper():
+
+            # Eliminar el dispositivo encontrado
+            inventario.pop(indice)
+
+            # Finalizar sin devolver contenido
+            return
+
+    # Si no existe el dispositivo, devolver error 404
     raise HTTPException(
         status_code=404,
         detail=f"No existe el equipo {nombre}"
