@@ -162,3 +162,27 @@ async def modificar(nombre: str, cambios: DispositivoParcial):
     )
 
 
+
+# DELETE: Eliminar un dispositivo del inventario
+@app.delete("/dispositivos/{nombre}")
+async def eliminar(nombre: str):
+    """Elimina un dispositivo del inventario por su nombre."""
+
+    # Buscar el dispositivo por nombre
+    for indice, equipo in enumerate(inventario):
+        if equipo.nombre.upper() == nombre.upper():
+
+            # Eliminar el dispositivo encontrado
+            eliminado = inventario.pop(indice)
+
+            # Devolver confirmacion de eliminacion
+            return {
+                "mensaje": "Dispositivo eliminado correctamente",
+                "dispositivo": eliminado
+            }
+
+    # Si no existe el dispositivo, devolver error 404
+    raise HTTPException(
+        status_code=404,
+        detail=f"No existe el equipo {nombre}"
+    )
