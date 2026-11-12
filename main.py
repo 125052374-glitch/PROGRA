@@ -18,6 +18,14 @@ class Dispositivo(BaseModel):
     activo: bool = True
 
 
+# Modelo para actualizar parcialmente un dispositivo
+class DispositivoParcial(BaseModel):
+    nombre: str | None = None
+    tipo: str | None = None
+    ip: str | None = None
+    activo: bool | None = None
+
+
 inventario = [
     Dispositivo(nombre="R1", tipo="router", ip="10.0.0.1"),
     Dispositivo(
@@ -117,3 +125,40 @@ async def reemplazar(nombre: str, datos: Dispositivo):
         status_code=404,
         detail=f"No existe el equipo {nombre}"
     )
+
+
+
+# UPDATE: Modificar parcialmente un dispositivo
+@app.patch("/dispositivos/{nombre}")
+async def modificar(nombre: str, cambios: DispositivoParcial):
+    """Modifica únicamente los campos enviados de un dispositivo."""
+
+    # Buscar el dispositivo por nombre
+    for equipo in inventario:
+        if equipo.nombre.upper() == nombre.upper():
+
+            # Verificar si el nuevo nombre ya pertenece a otro equipo
+            if cambios.nombre is not None:
+                for otro in inventario:
+                    if otro is not equipo and otro.nombre.upper() == cambios.nombre.upper():
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"Ya existe el equipo {cambios.nombre}"
+                        )
+
+            # Actualizar únicamente los campos enviados
+            datos_actualizados = cambios.model_dump(exclude_unset=True)
+
+            for campo, valor in datos_actualizados.items():
+                setattr(equipo, campo, valor)
+
+            # Devolver el dispositivo actualizado
+            return equipo
+
+    # Si el dispositivo no existe
+    raise HTTPException(
+        status_code=404,
+        detail=f"No existe el equipo {nombre}"
+    )
+
+
