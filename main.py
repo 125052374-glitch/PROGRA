@@ -84,3 +84,36 @@ async def crear(nuevo: Dispositivo):
 
     # Devolver los datos del dispositivo registrado
     return nuevo
+
+
+
+
+# UPDATE: Reemplazar completamente un dispositivo
+@app.put("/dispositivos/{nombre}")
+async def reemplazar(nombre: str, datos: Dispositivo):
+    """Reemplaza los datos de un dispositivo existente."""
+
+    # Buscar el dispositivo por nombre
+    for indice, equipo in enumerate(inventario):
+
+        if equipo.nombre.upper() == nombre.upper():
+
+            # Evitar nombres duplicados con otros dispositivos
+            for otro in inventario:
+                if otro is not equipo and otro.nombre.upper() == datos.nombre.upper():
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Ya existe el equipo {datos.nombre}"
+                    )
+
+            # Reemplazar completamente el dispositivo
+            inventario[indice] = datos
+
+            # Devolver los datos actualizados
+            return datos
+
+    # Si el dispositivo no existe
+    raise HTTPException(
+        status_code=404,
+        detail=f"No existe el equipo {nombre}"
+    )
